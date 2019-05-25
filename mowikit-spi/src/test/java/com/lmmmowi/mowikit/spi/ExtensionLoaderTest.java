@@ -4,6 +4,8 @@ import com.lmmmowi.mowikit.spi.foo.FooInterface;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
+
 /**
  * @Author: mowi
  * @Date: 2019-05-23
@@ -20,7 +22,20 @@ public class ExtensionLoaderTest {
     @Test
     public void test_getExtension() {
         ExtensionLoader<FooInterface> extensionLoader = ExtensionLoader.getExtensionLoader(FooInterface.class);
-        FooInterface fooInterface = extensionLoader.getExtension();
+        FooInterface fooInterface = extensionLoader.getExtension("a2");
         fooInterface.hello();
+    }
+
+    @Test
+    public void test_loadExtensionClasses() {
+        ExtensionLoader<FooInterface> extensionLoader = ExtensionLoader.getExtensionLoader(FooInterface.class);
+
+        try {
+            Method method = ExtensionLoader.class.getDeclaredMethod("loadExtensionClasses");
+            method.setAccessible(true);
+            method.invoke(extensionLoader);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 }

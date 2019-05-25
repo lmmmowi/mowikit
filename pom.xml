@@ -12,6 +12,7 @@
     <modules>
         <module>mowikit-spi</module>
         <module>mowikit-log</module>
+        <module>mowikit-proxy</module>
     </modules>
 
     <dependencyManagement>
@@ -24,5 +25,21 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <encoding>UTF-8</encoding>
+                    <compilerArguments>
+                        <extdirs>web/WEB-INF/lib</extdirs>
+                    </compilerArguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

@@ -2,8 +2,12 @@ package com.lmmmowi.mowikit.spi;
 
 import com.lmmmowi.mowikit.log.Logger;
 import com.lmmmowi.mowikit.log.LoggerFactory;
-import com.lmmmowi.mowikit.spi.foo.Foo;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +21,8 @@ import java.util.concurrent.ConcurrentMap;
 public class ExtensionLoader<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(ExtensionLoader.class);
+
+    private static final String SPI_DIRECTORY = "META_INF/spi/";
 
     private static final ConcurrentMap<Class<?>, Object> EXTENSION_INSTANCES = new ConcurrentHashMap<Class<?>, Object>();
 
@@ -39,10 +45,6 @@ public class ExtensionLoader<T> {
 
     public Class<?> getInterfaceType() {
         return interfaceType;
-    }
-
-    public T getExtension() {
-        return this.getExtension("default");
     }
 
     public T getExtension(String name) {
@@ -108,9 +110,55 @@ public class ExtensionLoader<T> {
         return classes;
     }
 
-    private synchronized Map<String, Class<?>> loadExtensionClasses() {
-        Map<String, Class<?>> map = new HashMap<String, Class<?>>();
-        map.put("default", Foo.class);
-        return map;
+    private Map<String, Class<?>> loadExtensionClasses() {
+        Map<String, Class<?>> extensionClasses = new HashMap<String, Class<?>>();
+        this.loadDirectory(extensionClasses, SPI_DIRECTORY);
+        return extensionClasses;
+    }
+
+    private void loadDirectory(Map<String, Class<?>> extensionClasses, String dir) {
+        String fileName = dir + interfaceType.getName();
+        ClassLoader classLoader = ExtensionLoader.class.getClassLoader();
+
+        try {
+            Enumeration<URL> urls = classLoader.getResources(fileName);
+            if (urls != null) {
+                while (urls.hasMoreElements()) {
+                    URL resourceURL = urls.nextElement();
+                    loadResource(extensionClasses, classLoader, resourceURL);
+                }
+            }
+        } catch (Throwable e) {
+            logger.error("Exception occurred when loading extension class (interface: " +
+                    interfaceType + ", description file: " + fileName + ").", e);
+        }
+    }
+
+    private void loadResource(Map<String, Class<?>> extensionClasses, ClassLoader classLoader, URL resourceURL) {
+        try {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(resourceURL.openStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    String[] parts = line.split("=");
+                    if (parts.length == 2) {
+                        String name = parts[0].trim();
+                        String className = parts[1].trim();
+                        this.loadClass(extensionClasses, Class.forName(className, false, classLoader), name);
+                    }
+                }
+            }
+        } catch (Throwable e) {
+            logger.error("Exception occurred when loading extension class (interface: " +
+                    interfaceType + ", class file: " + resourceURL + ") in " + resourceURL, e);
+        }
+    }
+
+    private void loadClass(Map<String, Class<?>> extensionClasses, Class<?> clazz, String name) {
+        Class<?> c = extensionClasses.get(name);
+        if (c == null) {
+            extensionClasses.put(name, clazz);
+        } else if (c != clazz) {
+            throw new IllegalStateException("Duplicate extension " + interfaceType.getName() + " name " + name + " on " + c.getName() + " and " + clazz.getName());
+        }
     }
 }
