@@ -1,5 +1,7 @@
 package com.lmmmowi.mowikit.proxy.javassist;
 
+import com.lmmmowi.mowikit.log.Logger;
+import com.lmmmowi.mowikit.log.LoggerFactory;
 import com.lmmmowi.mowikit.proxy.Invoker;
 import com.lmmmowi.mowikit.proxy.util.ReflectUtils;
 import javassist.*;
@@ -7,46 +9,102 @@ import javassist.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: mowi
  * @Date: 2019-05-25
  * @Description:
  */
-public class ClassMaker {
+class ClassMaker {
+
+    private static final Logger logger = LoggerFactory.getLogger(ClassMaker.class);
 
     private ClassLoader classLoader;
+
+    private Class proxyClass;
+
+    private Set<Class> interfaceClassSet = new HashSet<>();
+
+    private List<Method> methods = new ArrayList<>();
+
+    private Set<String> worked = new HashSet<>();
 
     public ClassMaker(ClassLoader classLoader) {
         this.classLoader = classLoader;
     }
 
-    public Class makeClass(Class type) throws Exception {
-        ClassPool classPool = ClassPool.getDefault();
+    public void setProxyClass(Class proxyClass) {
+        if (this.proxyClass == null) {
+            this.proxyClass = proxyClass;
 
-        String cn = type.getName() + ".proxy.proxy0";
-        CtClass ctClass = classPool.makeClass(cn);
-
-        ctClass.addField(CtField.make("private " + Invoker.class.getName() + " invoker;", ctClass));
-
-        ctClass.addConstructor(CtNewConstructor.make(getConstructorString(cn), ctClass));
-        ctClass.addConstructor(CtNewConstructor.defaultConstructor(ctClass));
-
-        ctClass.addInterface(classPool.get(type.getName()));
-        List<Method> methods = new ArrayList<>();
-        for (Method method : type.getMethods()) {
-            if (method.getDeclaringClass() != Object.class) {
-                methods.add(method);
+            if (!proxyClass.isInterface()) {
+                this.loadClassMethods(proxyClass);
             }
         }
+    }
+
+    public void addInterface(Class itf) {
+        if (itf.isInterface() && !interfaceClassSet.contains(itf)) {
+            interfaceClassSet.add(itf);
+            this.loadClassMethods(itf);
+        }
+    }
+
+    private void loadClassMethods(Class clazz) {
+        for (Method method : clazz.getMethods()) {
+            if (method.getDeclaringClass() != Object.class) {
+                String desc = ReflectUtils.getDesc(method);
+                if (!worked.contains(desc)) {
+                    methods.add(method);
+                    worked.add(desc);
+                }
+            }
+        }
+    }
+
+    public Class makeClass() throws Exception {
+        Class[] interfaces = interfaceClassSet.toArray(new Class[0]);
+
+        ClassPool classPool = ClassPool.getDefault();
+
+        String cn = proxyClass.getName() + ".proxy.proxy0";
+        CtClass ctClass = classPool.makeClass(cn);
+
+        // 如果被代理类不是接口，则继承被代理类
+        Class superClass = proxyClass.isInterface() ? null : proxyClass;
+        if (superClass != null) {
+            ctClass.setSuperclass(classPool.get(superClass.getName()));
+        }
+
+        // 实现的接口
+        for (Class itf : interfaces) {
+            ctClass.addInterface(classPool.get(itf.getName()));
+        }
+
+        // 静态字段用来持有被代理类的所有方法
         ctClass.addField(CtField.make("public static java.lang.reflect.Method[] methods;", ctClass));
+
+        // invoker字段
+        ctClass.addField(CtField.make("private " + Invoker.class.getName() + " invoker;", ctClass));
+
+        // 默认构造函数
+        ctClass.addConstructor(CtNewConstructor.defaultConstructor(ctClass));
+
+        // 传入invoker的构造函数
+        ctClass.addConstructor(CtNewConstructor.make(getConstructorString(cn), ctClass));
+
+        // 添加方法
         for (int i = 0; i < methods.size(); i++) {
             ctClass.addMethod(CtMethod.make(getMethodString(methods.get(i), i), ctClass));
         }
 
-        ctClass.setSuperclass(classPool.get(JavassistProxy.class.getName()));
+        // 实现JavassistProxy接口，添加创建代理的方法
+        ctClass.addInterface(classPool.get(JavassistProxy.class.getName()));
         ctClass.addMethod(CtNewMethod.make(getNewInstanceString(cn), ctClass));
+
 
         Class clazz = ctClass.toClass(classLoader, getClass().getProtectionDomain());
         clazz.getField("methods").set(null, methods.toArray(new Method[0]));
@@ -61,8 +119,12 @@ public class ClassMaker {
                 .append("(")
                 .append(Invoker.class.getName()).append(" invoker")
                 .append("){this.invoker = invoker;}");
-        System.out.println(sb.toString());
-        return sb.toString();
+
+        String s = sb.toString();
+        if (logger.isDebugEnabled()) {
+            logger.debug(s);
+        }
+        return s;
     }
 
     private String getNewInstanceString(String cn) {
@@ -70,16 +132,20 @@ public class ClassMaker {
         sb.append("public Object newInstance(" + Invoker.class.getName() + " invoker) { ")
                 .append("return new " + cn + "(invoker);")
                 .append("}");
-        System.out.println(sb.toString());
-        return sb.toString();
+
+        String s = sb.toString();
+        if (logger.isDebugEnabled()) {
+            logger.debug(s);
+        }
+        return s;
     }
 
     private String getMethodString(Method method, int index) {
         Class<?> rt = method.getReturnType();
         Class<?>[] pts = method.getParameterTypes();
 
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(modifier(method.getModifiers()))
+        StringBuilder sb = new StringBuilder();
+        sb.append(modifier(method.getModifiers()))
                 .append(" ")
                 .append(ReflectUtils.getName(rt))
                 .append(" ")
@@ -88,29 +154,32 @@ public class ClassMaker {
 
         for (int i = 0; i < pts.length; i++) {
             if (i > 0) {
-                stringBuilder.append(',');
+                sb.append(',');
             }
-            stringBuilder.append(ReflectUtils.getName(pts[i]));
-            stringBuilder.append(" arg").append(i);
+            sb.append(ReflectUtils.getName(pts[i]));
+            sb.append(" arg").append(i);
         }
 
-        stringBuilder.append("){");
+        sb.append("){");
 
         StringBuilder code = new StringBuilder("Object[] args = new Object[").append(pts.length).append("];");
         for (int j = 0; j < pts.length; j++) {
             code.append(" args[").append(j).append("] = ($w)$").append(j + 1).append(";");
         }
-        stringBuilder.append(code);
+        sb.append(code);
 
 
-        stringBuilder.append("return ");
+        sb.append("return ");
         if (!"void".equals(rt.getName())) {
-            stringBuilder.append("(").append(ReflectUtils.getName(rt)).append(")");
+            sb.append("(").append(ReflectUtils.getName(rt)).append(")");
         }
-        stringBuilder.append("invoker.invoke(invoker, methods[" + index + "], args); }");
+        sb.append("invoker.invoke(invoker, methods[" + index + "], args); }");
 
-        System.out.println(stringBuilder.toString());
-        return stringBuilder.toString();
+        String s = sb.toString();
+        if (logger.isDebugEnabled()) {
+            logger.debug(s);
+        }
+        return s;
     }
 
     private static String modifier(int mod) {

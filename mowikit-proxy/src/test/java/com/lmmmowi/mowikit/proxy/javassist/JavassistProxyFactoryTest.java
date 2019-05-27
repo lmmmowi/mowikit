@@ -19,7 +19,7 @@ public class JavassistProxyFactoryTest {
     public void test_getProxy() {
         Foo foo = new Foo();
 
-        Invoker<FooInterface> invoker = new Invoker<FooInterface>(foo) {
+        Invoker<Foo> invoker = new Invoker<Foo>(foo) {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                 System.out.println("before " + method.getName());
@@ -32,17 +32,20 @@ public class JavassistProxyFactoryTest {
         };
 
         ProxyFactory proxyFactory = new JavassistProxyFactory();
-        FooInterface fooInterface = proxyFactory.getProxy(invoker, new Class[]{FooInterface.class});
+        FooInterface fooInterface = proxyFactory.getProxy(invoker);
+
+//        fooInterface.hello();
+//
+//
+//        System.out.println(fooInterface.hehe(133));
+//        System.out.println(fooInterface.getClass().getName());
+//        System.out.println(fooInterface.getClass().getSuperclass().getName());
+//
+//
+//        for (Method declaredMethod : fooInterface.getClass().getDeclaredMethods()) {
+//            System.out.println(declaredMethod.getName());
+//        }
 
         fooInterface.hello();
-
-        System.out.println(fooInterface.hehe(133));
-        System.out.println(fooInterface.getClass().getName());
-        System.out.println(fooInterface.getClass().getSuperclass().getName());
-
-
-        for (Method declaredMethod : fooInterface.getClass().getDeclaredMethods()) {
-            System.out.println(declaredMethod.getName());
-        }
     }
 }

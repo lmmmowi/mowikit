@@ -11,7 +11,28 @@ import com.lmmmowi.mowikit.proxy.Invoker;
 public class JavassistProxyFactory extends AbstractProxyFactory {
 
     @Override
-    public <T> T getProxy(Invoker<T> invoker, Class[] interfaces) {
-        return (T) JavassistProxy.getProxy(interfaces).newInstance(invoker);
+    protected <T> T getProxy(Invoker<T> invoker, Class invokerGenericClass, Class[] interfaces) {
+        return (T) getProxy(invokerGenericClass, interfaces).newInstance(invoker);
+    }
+
+    private static JavassistProxy getProxy(Class proxyClass, Class[] interfaces) {
+        ClassLoader classLoader = JavassistProxy.class.getClassLoader();
+
+        JavassistProxy proxy = null;
+        try {
+            ClassMaker classMaker = new ClassMaker(classLoader);
+
+            classMaker.setProxyClass(proxyClass);
+
+            for (Class itf : interfaces) {
+                classMaker.addInterface(itf);
+            }
+
+            Class clazz = classMaker.makeClass();
+            proxy = (JavassistProxy) clazz.newInstance();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
+        return proxy;
     }
 }

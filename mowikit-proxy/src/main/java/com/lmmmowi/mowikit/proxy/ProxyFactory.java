@@ -7,6 +7,8 @@ package com.lmmmowi.mowikit.proxy;
  */
 public interface ProxyFactory {
 
+    <T> T getProxy(Invoker<T> invoker);
+
     <T> T getProxy(Invoker<T> invoker, Class[] interfaces);
 
 }
