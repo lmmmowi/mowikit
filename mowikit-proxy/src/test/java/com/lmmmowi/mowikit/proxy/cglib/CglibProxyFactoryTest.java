@@ -1,4 +1,4 @@
-package com.lmmmowi.mowikit.proxy.javassist;
+package com.lmmmowi.mowikit.proxy.cglib;
 
 import com.lmmmowi.mowikit.proxy.Invoker;
 import com.lmmmowi.mowikit.proxy.ProxyFactory;
@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
  * @Date: 2019-05-25
  * @Description:
  */
-public class JavassistProxyFactoryTest {
+public class CglibProxyFactoryTest {
 
     @Test
     public void test_getProxy() {
@@ -31,7 +31,7 @@ public class JavassistProxyFactoryTest {
             }
         };
 
-        ProxyFactory proxyFactory = new JavassistProxyFactory();
+        ProxyFactory proxyFactory = new CglibProxyFactory();
         FooInterface fooInterface = proxyFactory.getProxy(invoker);
 
         fooInterface.hello();

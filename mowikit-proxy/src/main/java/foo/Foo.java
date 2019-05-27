@@ -1,4 +1,4 @@
-package com.lmmmowi.mowikit.proxy.foo;
+package foo;
 
 /**
  * @Author: mowi
@@ -15,5 +15,15 @@ public class Foo implements FooInterface {
     @Override
     public String hehe(int a) {
         return "hehe " + a;
+    }
+
+    @Override
+    public String toString() {
+        return "sdasdasd";
+    }
+
+    @Override
+    public int hashCode() {
+        return 11;
     }
 }

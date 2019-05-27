@@ -55,7 +55,7 @@ class ClassMaker {
 
     private void loadClassMethods(Class clazz) {
         for (Method method : clazz.getMethods()) {
-            if (method.getDeclaringClass() != Object.class) {
+            if (!ReflectUtils.isObjectMethod(method)) {
                 String desc = ReflectUtils.getDesc(method);
                 if (!worked.contains(desc)) {
                     methods.add(method);

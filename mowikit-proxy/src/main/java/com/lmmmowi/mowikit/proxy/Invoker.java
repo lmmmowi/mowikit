@@ -14,4 +14,8 @@ public abstract class Invoker<T> implements InvocationHandler {
     public Invoker(T object) {
         this.object = object;
     }
+
+    public T getProxy() {
+        return object;
+    }
 }

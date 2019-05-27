@@ -125,4 +125,23 @@ public class ReflectUtils {
         return null;
     }
 
+    public static boolean isObjectMethod(Method method) {
+        if (method.getDeclaringClass() == Object.class) {
+            return true;
+        }
+
+        String methodName = method.getName();
+        Class<?>[] parameterTypes = method.getParameterTypes();
+        if ("toString".equals(methodName) && parameterTypes.length == 0) {
+            return true;
+        }
+        if ("hashCode".equals(methodName) && parameterTypes.length == 0) {
+            return true;
+        }
+        if ("equals".equals(methodName) && parameterTypes.length == 1) {
+            return true;
+        }
+
+        return false;
+    }
 }

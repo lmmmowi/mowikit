@@ -1,4 +1,4 @@
-package com.lmmmowi.mowikit.proxy.foo;
+package foo;
 
 /**
  * @Author: mowi

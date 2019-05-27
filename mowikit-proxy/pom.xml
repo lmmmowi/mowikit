@@ -4,6 +4,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <properties>
+        <javassist.version>3.12.1.GA</javassist.version>
+        <cglib.version>3.2.10</cglib.version>
+    </properties>
+
     <parent>
         <artifactId>mowikit</artifactId>
         <groupId>com.lmmmowi</groupId>
@@ -26,6 +31,12 @@
         </dependency>
 
         <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>mowikit-log</artifactId>
             <version>${project.version}</version>
@@ -37,7 +48,13 @@
             <dependency>
                 <groupId>javassist</groupId>
                 <artifactId>javassist</artifactId>
-                <version>3.12.1.GA</version>
+                <version>${javassist.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>cglib</groupId>
+                <artifactId>cglib</artifactId>
+                <version>${cglib.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
